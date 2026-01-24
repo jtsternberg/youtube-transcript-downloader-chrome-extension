@@ -83,7 +83,6 @@
 	// Filter videos by oldest
 	async function filterByOldest() {
 		console.log('Filtering videos by oldest...');
-		await sleep(1000);
 
 		// Method 1: Look for chip cloud with "Oldest" option
 		const chipCloud = document.querySelector('yt-chip-cloud-chip-renderer');
@@ -95,7 +94,11 @@
 			});
 			if (oldestChip) {
 				oldestChip.click();
-				await sleep(2000);
+				// Wait for page to update
+				await waitForElementByFinder(() => {
+					const links = getVideoLinks();
+					return links.length > 0 ? true : null;
+				}, { description: 'video links after filter', timeout: 5000 });
 				console.log('Filtered to oldest videos (chip method)');
 				return true;
 			}
@@ -112,21 +115,40 @@
 
 		if (filterButton) {
 			filterButton.click();
-			await sleep(1500);
 
-			// Look for "Oldest" option in dropdown
-			const menuItems = Array.from(document.querySelectorAll('ytd-menu-service-item-renderer, ytd-menu-navigation-item-renderer, yt-formatted-string'));
-			const oldestOption = menuItems.find(item => {
-				const text = (item.textContent || '').toLowerCase();
-				return text.includes('oldest') || text.includes('date');
-			});
+			// Wait for dropdown menu to appear
+			try {
+				await waitForElementByFinder(() => {
+					const menuItems = Array.from(document.querySelectorAll('ytd-menu-service-item-renderer, ytd-menu-navigation-item-renderer, yt-formatted-string'));
+					return menuItems.find(item => {
+						const text = (item.textContent || '').toLowerCase();
+						return text.includes('oldest') || text.includes('date');
+					}) || null;
+				}, { description: 'filter menu', timeout: 3000 });
 
-			if (oldestOption) {
-				const clickable = oldestOption.closest('button') || oldestOption.closest('ytd-menu-service-item-renderer') || oldestOption;
-				clickable.click();
-				await sleep(2000);
+				// Find and click "Oldest" option
+				const oldestOption = await waitForElementByFinder(() => {
+					const menuItems = Array.from(document.querySelectorAll('ytd-menu-service-item-renderer, ytd-menu-navigation-item-renderer, yt-formatted-string'));
+					const item = menuItems.find(i => {
+						const text = (i.textContent || '').toLowerCase();
+						return text.includes('oldest') || text.includes('date');
+					});
+					if (item) {
+						return item.closest('button') || item.closest('ytd-menu-service-item-renderer') || item;
+					}
+					return null;
+				}, { description: 'oldest option', timeout: 3000 });
+
+				oldestOption.click();
+				// Wait for page to update
+				await waitForElementByFinder(() => {
+					const links = getVideoLinks();
+					return links.length > 0 ? true : null;
+				}, { description: 'video links after filter', timeout: 5000 });
 				console.log('Filtered to oldest videos (dropdown method)');
 				return true;
+			} catch (e) {
+				console.log('Could not find filter menu items');
 			}
 		}
 
@@ -136,7 +158,11 @@
 			if (!url.searchParams.has('view') || url.searchParams.get('view') !== '0') {
 				url.searchParams.set('view', '0'); // 0 = oldest
 				window.location.href = url.toString();
-				await sleep(3000);
+				// Wait for page to load
+				await waitForElementByFinder(() => {
+					const links = getVideoLinks();
+					return links.length > 0 ? true : null;
+				}, { description: 'video links after URL filter', timeout: 10000 });
 				console.log('Filtered to oldest videos (URL method)');
 				return true;
 			}
@@ -210,108 +236,97 @@
 			return false;
 		}
 
-		const videoTitle = getCurrentVideoTitle();
-		console.log(`Downloading transcript for: ${videoTitle}`);
-
 		try {
-			// Wait for page to be ready
-			await sleep(2000);
+			// Wait for page to be ready (video title should be present)
+			console.log('Waiting for page to load...');
+			await waitForElementByFinder(() => {
+				const title = getCurrentVideoTitle();
+				return title && title !== 'untitled-video' ? title : null;
+			}, { description: 'video title', timeout: 15000 });
 
-			// Wait for and click "Show more" in description
+			const videoTitle = getCurrentVideoTitle();
+			console.log(`Downloading transcript for: ${videoTitle}`);
+
+			// Wait for and click "Show more" in description (optional - may not exist)
 			console.log('Looking for "Show more" button...');
-			await sleep(1000);
+			try {
+				const showMoreButton = await waitForElementByFinder(() => {
+					const allButtons = Array.from(document.querySelectorAll('button, ytd-button-renderer, yt-button-shape'));
+					return allButtons.find(btn => {
+						const text = (btn.textContent || btn.innerText || '').toLowerCase();
+						return text.includes('show more') || (text.includes('more') && !text.includes('actions'));
+					}) || null;
+				}, { description: 'Show more button', timeout: 3000 });
 
-			// Try to find "Show more" button by text content
-			const allButtons = Array.from(document.querySelectorAll('button, ytd-button-renderer, yt-button-shape'));
-			const showMoreButton = allButtons.find(btn => {
-				const text = (btn.textContent || btn.innerText || '').toLowerCase();
-				return text.includes('show more') || text.includes('more');
-			});
-
-			if (showMoreButton) {
 				showMoreButton.click();
-				await sleep(1500);
 				console.log('Clicked "Show more"');
+			} catch (e) {
+				console.log('No "Show more" button found, continuing...');
 			}
 
 			// Wait for and click "Show transcript" button
 			console.log('Looking for "Show transcript" button...');
-			await sleep(1500);
 
-			// First, try to find the "..." more actions menu button
-			const moreActionsButton = Array.from(document.querySelectorAll('button, ytd-menu-renderer, yt-icon-button'))
-				.find(btn => {
-					const ariaLabel = btn.getAttribute('aria-label') || '';
-					return ariaLabel.toLowerCase().includes('more actions') ||
-						   ariaLabel.toLowerCase().includes('more') ||
-						   btn.querySelector('yt-icon[class*="more"]');
-				});
+			// First, try to find and click the "..." more actions menu button if it exists
+			try {
+				const moreActionsButton = await waitForElementByFinder(() => {
+					const buttons = Array.from(document.querySelectorAll('button, ytd-menu-renderer, yt-icon-button'));
+					return buttons.find(btn => {
+						const ariaLabel = (btn.getAttribute('aria-label') || '').toLowerCase();
+						return ariaLabel.includes('more actions') ||
+							   (ariaLabel.includes('more') && !ariaLabel.includes('show more'));
+					}) || null;
+				}, { description: 'more actions button', timeout: 2000 });
 
-			if (moreActionsButton) {
 				moreActionsButton.click();
-				await sleep(1000);
 				console.log('Opened more actions menu');
+			} catch (e) {
+				// More actions menu might not be needed
 			}
 
-			// Try multiple methods to find transcript button
-			let transcriptButton = null;
-
-			// Method 1: Look for button with "transcript" in aria-label or text
-			const buttons = Array.from(document.querySelectorAll('button, ytd-menu-service-item-renderer, ytd-menu-navigation-item-renderer'));
-			transcriptButton = buttons.find(btn => {
-				const text = (btn.textContent || btn.innerText || '').toLowerCase();
-				const ariaLabel = (btn.getAttribute('aria-label') || '').toLowerCase();
-				return text.includes('transcript') || ariaLabel.includes('transcript');
-			});
-
-			// Method 2: Look in yt-formatted-string elements
-			if (!transcriptButton) {
-				const formattedStrings = Array.from(document.querySelectorAll('yt-formatted-string'));
-				const transcriptString = formattedStrings.find(el => {
-					const text = (el.textContent || '').toLowerCase();
-					return text.includes('transcript');
+			// Wait for transcript button to appear
+			const transcriptButton = await waitForElementByFinder(() => {
+				// Method 1: Look for button with "transcript" in aria-label or text
+				const buttons = Array.from(document.querySelectorAll('button, ytd-menu-service-item-renderer, ytd-menu-navigation-item-renderer'));
+				let btn = buttons.find(b => {
+					const text = (b.textContent || b.innerText || '').toLowerCase();
+					const ariaLabel = (b.getAttribute('aria-label') || '').toLowerCase();
+					return text.includes('transcript') || ariaLabel.includes('transcript');
 				});
-				if (transcriptString) {
-					transcriptButton = transcriptString.closest('button') || transcriptString.closest('ytd-menu-service-item-renderer');
-				}
-			}
 
-			// Method 3: Look in description area specifically
-			if (!transcriptButton) {
-				const descriptionArea = document.querySelector('#description, ytd-video-secondary-info-renderer');
-				if (descriptionArea) {
-					const descButtons = Array.from(descriptionArea.querySelectorAll('button'));
-					transcriptButton = descButtons.find(btn => {
-						const text = (btn.textContent || '').toLowerCase();
+				// Method 2: Look in yt-formatted-string elements
+				if (!btn) {
+					const formattedStrings = Array.from(document.querySelectorAll('yt-formatted-string'));
+					const transcriptString = formattedStrings.find(el => {
+						const text = (el.textContent || '').toLowerCase();
 						return text.includes('transcript');
 					});
+					if (transcriptString) {
+						btn = transcriptString.closest('button') || transcriptString.closest('ytd-menu-service-item-renderer');
+					}
 				}
-			}
 
-			if (transcriptButton) {
-				transcriptButton.click();
-				await sleep(2500);
-				console.log('Clicked "Show transcript"');
-			} else {
-				throw new Error('Could not find transcript button');
-			}
+				// Method 3: Look in description area specifically
+				if (!btn) {
+					const descriptionArea = document.querySelector('#description, ytd-video-secondary-info-renderer');
+					if (descriptionArea) {
+						const descButtons = Array.from(descriptionArea.querySelectorAll('button'));
+						btn = descButtons.find(b => {
+							const text = (b.textContent || '').toLowerCase();
+							return text.includes('transcript');
+						});
+					}
+				}
+
+				return btn || null;
+			}, { description: 'transcript button', timeout: 10000 });
+
+			transcriptButton.click();
+			console.log('Clicked "Show transcript"');
 
 			// Wait for transcript content to appear
 			console.log('Waiting for transcript content...');
-			await sleep(2500);
-
-			// Extract transcript text - YouTube uses ytd-transcript-segment-renderer
-			let transcriptElement = document.querySelector('ytd-transcript-renderer, ytd-transcript-body-renderer');
-
-			if (!transcriptElement) {
-				// Try waiting a bit more
-				await sleep(2000);
-				transcriptElement = document.querySelector('ytd-transcript-renderer, ytd-transcript-body-renderer');
-			}
-
-			if (!transcriptElement) {
-				throw new Error('Could not find transcript content');
-			}
+			const transcriptElement = await waitForElement('ytd-transcript-renderer, ytd-transcript-body-renderer', 15000);
 
 			// Extract all transcript segments
 			const segments = transcriptElement.querySelectorAll('ytd-transcript-segment-renderer');
@@ -370,7 +385,12 @@
 
 		// Navigate to video
 		window.location.href = videoUrl;
-		await sleep(4000); // Wait for page to load
+
+		// Wait for page to load (check for video title)
+		await waitForElementByFinder(() => {
+			const title = getCurrentVideoTitle();
+			return title && title !== 'untitled-video' ? true : null;
+		}, { description: 'video page to load', timeout: 15000 });
 
 		// Use the standalone download function
 		return await window.jtyt.downloadTranscript();
@@ -394,9 +414,13 @@
 
 		// Filter by oldest if not already done
 		await filterByOldest();
-		await sleep(2000);
 
-		// Get all video links
+		// Get all video links (wait for them to be available)
+		await waitForElementByFinder(() => {
+			const links = getVideoLinks();
+			return links.length > 0 ? true : null;
+		}, { description: 'video links', timeout: 10000 });
+
 		let videoLinks = getVideoLinks();
 
 		if (videoLinks.length === 0) {
@@ -429,15 +453,26 @@
 			// Wait before next video (except for the last one)
 			if (i < videoLinks.length - 1) {
 				console.log(`Waiting ${delayBetweenVideos}ms before next video...`);
-				await sleep(delayBetweenVideos);
+				await new Promise(resolve => setTimeout(resolve, delayBetweenVideos));
 
 				// Navigate back to videos page
 				window.location.href = window.location.href.split('/watch')[0] + '/videos';
-				await sleep(3000);
+
+				// Wait for videos page to load
+				await waitForElementByFinder(() => {
+					const links = getVideoLinks();
+					return links.length > 0 ? true : null;
+				}, { description: 'videos page to load', timeout: 15000 });
 
 				// Re-filter and re-get links (in case page structure changed)
 				await filterByOldest();
-				await sleep(2000);
+
+				// Wait for links to be available after filtering
+				await waitForElementByFinder(() => {
+					const links = getVideoLinks();
+					return links.length > 0 ? true : null;
+				}, { description: 'video links after re-filter', timeout: 10000 });
+
 				videoLinks = getVideoLinks();
 			}
 		}
@@ -445,15 +480,10 @@
 		console.log('\n✓ All transcripts downloaded!');
 	};
 
-	// Helper function to get video links without processing
-	window.jtyt.getVideoLinks = function() {
-		return getVideoLinks();
-	};
-
-	// Helper function to filter by oldest
-	window.jtyt.filterByOldest = function() {
-		return filterByOldest();
-	};
+	// Helper functions
+	window.jtyt.getVideoLinks = getVideoLinks;
+	window.jtyt.getCurrentVideoTitle = getCurrentVideoTitle;
+	window.jtyt.filterByOldest = filterByOldest;
 
 	console.log('YouTube Transcript Downloader loaded!');
 	console.log('Single video: window.jtyt.downloadTranscript()');
