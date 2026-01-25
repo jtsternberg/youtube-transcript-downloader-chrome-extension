@@ -448,24 +448,18 @@
 
 			if (segments.length > 0) {
 				segments.forEach(segment => {
-					// Get timestamp
-					const timeElement = segment.querySelector('.segment-timestamp, [data-timestamp], ytd-transcript-segment-renderer > div:first-child');
-					const time = timeElement ? (timeElement.textContent || timeElement.innerText || '').trim() : '';
+					// Get timestamp from the specific timestamp element
+					const timeElement = segment.querySelector('.segment-timestamp');
+					const time = timeElement ? timeElement.textContent.trim() : '';
 
-					// Get text
-					const textElements = segment.querySelectorAll('yt-formatted-string');
-					let text = '';
-					if (textElements.length > 0) {
-						text = Array.from(textElements)
-							.map(el => el.textContent || el.innerText)
-							.join(' ')
-							.trim();
-					} else {
-						text = (segment.textContent || segment.innerText || '').trim();
-						// Remove timestamp from text if it's included
-						if (time && text.startsWith(time)) {
-							text = text.substring(time.length).trim();
-						}
+					// Get text from the specific segment-text element
+					const textElement = segment.querySelector('yt-formatted-string.segment-text');
+					let text = textElement ? textElement.textContent.trim() : '';
+
+					// Fallback if segment-text not found
+					if (!text) {
+						const anyText = segment.querySelector('yt-formatted-string');
+						text = anyText ? anyText.textContent.trim() : '';
 					}
 
 					if (text) {
