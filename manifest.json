@@ -4,6 +4,9 @@
 	"version": "1.0.0",
 	"description": "Download transcripts from YouTube videos",
 	"permissions": ["activeTab", "scripting"],
+	"background": {
+		"service_worker": "src/background.js"
+	},
 	"host_permissions": [
 		"https://www.youtube.com/*",
 		"https://youtube.com/*"
