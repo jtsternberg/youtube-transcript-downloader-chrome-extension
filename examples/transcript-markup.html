@@ -1,0 +1,140 @@
+<!--
+  Minimal example of YouTube's transcript panel markup (as of April 2025).
+
+  Hierarchy:
+    ytd-engagement-panel-section-list-renderer  (outer panel)
+      ytd-engagement-panel-title-header-renderer  (panel header: "In this video")
+      yt-section-list-renderer  (scrollable body with search + chapters)
+        yt-search-input-view-model  (transcript search box)
+        yt-item-section-renderer  (one per chapter)
+          #header → chapter title
+          #contents → transcript segments
+            macro-markers-panel-item-view-model
+              timeline-item-view-model
+                transcript-segment-view-model  ← each transcript line
+                  .ytwTranscriptSegmentViewModelTimestamp  (timestamp)
+                  .ytwTranscriptSegmentViewModelTimestampA11yLabel  (a11y)
+                  span[role="text"]  (transcript text)
+
+  Key selectors for extraction:
+    - Container wait:  'transcript-segment-view-model'
+    - All segments:    document.querySelectorAll('transcript-segment-view-model')
+    - Timestamp:       seg.querySelector('.ytwTranscriptSegmentViewModelTimestamp')
+    - Text content:    seg.querySelector('span[role="text"]')
+-->
+
+<ytd-engagement-panel-section-list-renderer class="style-scope ytd-watch-flexy" visibility="ENGAGEMENT_PANEL_VISIBILITY_EXPANDED">
+  <div id="header" class="style-scope ytd-engagement-panel-section-list-renderer">
+    <ytd-engagement-panel-title-header-renderer class="style-scope ytd-engagement-panel-section-list-renderer">
+      <div id="title-container" class="style-scope ytd-engagement-panel-title-header-renderer">
+        <h2 id="title" class="style-scope ytd-engagement-panel-title-header-renderer" aria-label="In this video">
+          <yt-formatted-string id="title-text" class="style-scope ytd-engagement-panel-title-header-renderer" title="In this video">In this video</yt-formatted-string>
+        </h2>
+      </div>
+    </ytd-engagement-panel-title-header-renderer>
+  </div>
+
+  <yt-section-list-renderer class="ytSectionListRendererHost style-scope ytd-engagement-panel-section-list-renderer" data-target-id="PAmodern_transcript_view">
+    <div class="ytSectionListRendererHeader">
+      <yt-search-input-view-model class="ytSearchInputViewModelHost">
+        <!-- transcript search box -->
+      </yt-search-input-view-model>
+    </div>
+
+    <div class="ytSectionListRendererContents">
+
+      <!-- Chapter 1 -->
+      <yt-item-section-renderer class="ytItemSectionRendererHost">
+        <div id="header" style="top: 56px;">
+          <div>
+            <macro-markers-panel-item-view-model class="ytwMacroMarkersPanelItemViewModelHost" tabindex="0" role="button">
+              <timeline-chapter-view-model class="ytwTimelineChapterViewModelHost ytwTimelineChapterViewModelHostSmallerPadding">
+                <h3 class="ytwTimelineChapterViewModelTitle">Chapter 1: Library Mouse</h3>
+              </timeline-chapter-view-model>
+            </macro-markers-panel-item-view-model>
+          </div>
+        </div>
+        <div id="contents">
+
+          <!-- Segment: normal -->
+          <div>
+            <macro-markers-panel-item-view-model class="ytwMacroMarkersPanelItemViewModelHost" tabindex="0" role="button">
+              <timeline-item-view-model class="ytwTimelineItemViewModelHost ytwTimelineItemViewModelHostSmallerPadding">
+                <div class="ytwTimelineItemViewModelContentItems">
+                  <transcript-segment-view-model class="ytwTranscriptSegmentViewModelHost" style="--timestamp-active-background-color: rgba(52,219,198,0.169); --timestamp-active-color: #97f2e7;">
+                    <div aria-hidden="true" class="ytwTranscriptSegmentViewModelTimestamp">0:00</div>
+                    <div class="ytwTranscriptSegmentViewModelTimestampA11yLabel"></div>
+                    <span class="ytAttributedStringHost ytAttributedStringLinkInheritColor" role="text" style="">Hi.</span>
+                  </transcript-segment-view-model>
+                </div>
+              </timeline-item-view-model>
+            </macro-markers-panel-item-view-model>
+          </div>
+
+          <!-- Segment: normal -->
+          <div>
+            <macro-markers-panel-item-view-model class="ytwMacroMarkersPanelItemViewModelHost" tabindex="0" role="button">
+              <timeline-item-view-model class="ytwTimelineItemViewModelHost ytwTimelineItemViewModelHostSmallerPadding">
+                <div class="ytwTimelineItemViewModelContentItems">
+                  <transcript-segment-view-model class="ytwTranscriptSegmentViewModelHost" style="--timestamp-active-background-color: rgba(52,219,198,0.169); --timestamp-active-color: #97f2e7;">
+                    <div aria-hidden="true" class="ytwTranscriptSegmentViewModelTimestamp">0:00</div>
+                    <div class="ytwTranscriptSegmentViewModelTimestampA11yLabel"></div>
+                    <span class="ytAttributedStringHost ytAttributedStringLinkInheritColor" role="text" style="">It's such a pleasure to meet you.</span>
+                  </transcript-segment-view-model>
+                </div>
+              </timeline-item-view-model>
+            </macro-markers-panel-item-view-model>
+          </div>
+
+          <!-- Segment: normal -->
+          <div>
+            <macro-markers-panel-item-view-model class="ytwMacroMarkersPanelItemViewModelHost" tabindex="0" role="button">
+              <timeline-item-view-model class="ytwTimelineItemViewModelHost ytwTimelineItemViewModelHostSmallerPadding">
+                <div class="ytwTimelineItemViewModelContentItems">
+                  <transcript-segment-view-model class="ytwTranscriptSegmentViewModelHost" style="--timestamp-active-background-color: rgba(52,219,198,0.169); --timestamp-active-color: #97f2e7;">
+                    <div aria-hidden="true" class="ytwTranscriptSegmentViewModelTimestamp">0:07</div>
+                    <div class="ytwTranscriptSegmentViewModelTimestampA11yLabel">7 seconds</div>
+                    <span class="ytAttributedStringHost ytAttributedStringLinkInheritColor" role="text" style="">This is terrifying for me.</span>
+                  </transcript-segment-view-model>
+                </div>
+              </timeline-item-view-model>
+            </macro-markers-panel-item-view-model>
+          </div>
+
+        </div>
+      </yt-item-section-renderer>
+
+      <!-- Chapter 2 -->
+      <yt-item-section-renderer class="ytItemSectionRendererHost">
+        <div id="header" style="top: 56px;">
+          <div>
+            <macro-markers-panel-item-view-model class="ytwMacroMarkersPanelItemViewModelHost" tabindex="0" role="button">
+              <timeline-chapter-view-model class="ytwTimelineChapterViewModelHost ytwTimelineChapterViewModelHostSmallerPadding">
+                <h3 class="ytwTimelineChapterViewModelTitle">Chapter 2: Real Nerds</h3>
+              </timeline-chapter-view-model>
+            </macro-markers-panel-item-view-model>
+          </div>
+        </div>
+        <div id="contents">
+
+          <!-- Segment: active (currently playing) -->
+          <div>
+            <macro-markers-panel-item-view-model class="ytwMacroMarkersPanelItemViewModelHost is-active" tabindex="0" role="button">
+              <timeline-item-view-model class="ytwTimelineItemViewModelHost ytwTimelineItemViewModelHostSmallerPadding">
+                <div class="ytwTimelineItemViewModelContentItems">
+                  <transcript-segment-view-model class="ytwTranscriptSegmentViewModelHost ytwTranscriptSegmentViewModelHostActive" style="--timestamp-active-background-color: rgba(52,219,198,0.169); --timestamp-active-color: #97f2e7;">
+                    <div aria-hidden="true" class="ytwTranscriptSegmentViewModelTimestamp ytwTranscriptSegmentViewModelTimestampActive">5:30</div>
+                    <div class="ytwTranscriptSegmentViewModelTimestampA11yLabel">5 minutes 30 seconds</div>
+                    <span class="ytAttributedStringHost ytAttributedStringLinkInheritColor" role="text" style="">The real nerds are the ones who stay curious.</span>
+                  </transcript-segment-view-model>
+                </div>
+              </timeline-item-view-model>
+            </macro-markers-panel-item-view-model>
+          </div>
+
+        </div>
+      </yt-item-section-renderer>
+
+    </div>
+  </yt-section-list-renderer>
+</ytd-engagement-panel-section-list-renderer>

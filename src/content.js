@@ -151,18 +151,27 @@
 
 		transcriptBtn.click();
 
-		// Wait for transcript
+		// Wait for transcript (support both old and new YouTube markup)
 		const transcriptEl = await waitForElement(
-			() => document.querySelector('ytd-transcript-renderer, ytd-transcript-body-renderer'),
+			() => document.querySelector('ytd-transcript-renderer, ytd-transcript-body-renderer, transcript-segment-view-model'),
 			{ description: 'transcript content', timeout: 15000 }
 		);
 
-		// Extract text
-		const segments = transcriptEl.querySelectorAll('ytd-transcript-segment-renderer');
+		// Extract text — try new markup first, fall back to old
+		const newSegments = document.querySelectorAll('transcript-segment-view-model');
+		const oldSegments = document.querySelectorAll('ytd-transcript-segment-renderer');
 		let text = '';
 
-		if (segments.length > 0) {
-			segments.forEach(seg => {
+		if (newSegments.length > 0) {
+			newSegments.forEach(seg => {
+				const time = seg.querySelector('.ytwTranscriptSegmentViewModelTimestamp')?.textContent.trim() || '';
+				const content = seg.querySelector('span[role="text"]')?.textContent.trim() || '';
+				if (content) {
+					text += `\n${time}\n${content}\n`;
+				}
+			});
+		} else if (oldSegments.length > 0) {
+			oldSegments.forEach(seg => {
 				const time = seg.querySelector('.segment-timestamp')?.textContent.trim() || '';
 				const content = seg.querySelector('yt-formatted-string.segment-text')?.textContent.trim() ||
 					seg.querySelector('yt-formatted-string')?.textContent.trim() || '';

@@ -440,23 +440,33 @@
 
 			// Wait for transcript content to appear
 			console.log('Waiting for transcript content...');
-			const transcriptElement = await waitForElement('ytd-transcript-renderer, ytd-transcript-body-renderer', 15000);
+			const transcriptElement = await waitForElement('ytd-transcript-renderer, ytd-transcript-body-renderer, transcript-segment-view-model', 15000);
 
-			// Extract all transcript segments
-			const segments = transcriptElement.querySelectorAll('ytd-transcript-segment-renderer');
+			// Extract all transcript segments — try new markup first, fall back to old
+			const newSegments = document.querySelectorAll('transcript-segment-view-model');
+			const oldSegments = transcriptElement.querySelectorAll('ytd-transcript-segment-renderer');
 			let transcriptText = '';
 
-			if (segments.length > 0) {
-				segments.forEach(segment => {
-					// Get timestamp from the specific timestamp element
+			if (newSegments.length > 0) {
+				newSegments.forEach(segment => {
+					const timeElement = segment.querySelector('.ytwTranscriptSegmentViewModelTimestamp');
+					const time = timeElement ? timeElement.textContent.trim() : '';
+
+					const textElement = segment.querySelector('span[role="text"]');
+					const text = textElement ? textElement.textContent.trim() : '';
+
+					if (text) {
+						transcriptText += `${time ? time + ' ' : ''}${text}\n`;
+					}
+				});
+			} else if (oldSegments.length > 0) {
+				oldSegments.forEach(segment => {
 					const timeElement = segment.querySelector('.segment-timestamp');
 					const time = timeElement ? timeElement.textContent.trim() : '';
 
-					// Get text from the specific segment-text element
 					const textElement = segment.querySelector('yt-formatted-string.segment-text');
 					let text = textElement ? textElement.textContent.trim() : '';
 
-					// Fallback if segment-text not found
 					if (!text) {
 						const anyText = segment.querySelector('yt-formatted-string');
 						text = anyText ? anyText.textContent.trim() : '';
